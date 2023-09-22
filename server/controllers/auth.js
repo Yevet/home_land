@@ -203,7 +203,7 @@ export const currentUser = async (req, res) => {
     res.json(user);
   } catch (err) {
     console.log(err);
-    return res.status(403).json({ error: "Unauthorized" });
+    return res.status(403).json({ error: "Unauhorized" });
   }
 };
 
@@ -216,5 +216,45 @@ export const publicProfile = async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.json({ error: "User not found" });
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.json({ error: "Password is required" });
+    }
+    if (password && password?.length < 6) {
+      return res.json({ error: "Password should be min 6 characters" });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, {
+      password: await hashPassword(password),
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.log(err);
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id, req.body, {
+      new: true,
+    });
+    user.password = undefined;
+    user.resetCode = undefined;
+    res.json(user);
+  } catch (err) {
+    console.log(err);
+    if (err.codeName === "DuplicateKey") {
+      return res.json({ error: "Username or email is already taken" });
+    } else {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
   }
 };
